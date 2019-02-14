@@ -2,14 +2,22 @@ FROM ubuntu:16.04
 
 MAINTAINER TobiLG <tobilg@gmail.com>
 
-# Download dumb-init
-ADD https://github.com/Yelp/dumb-init/releases/download/v1.0.2/dumb-init_1.0.2_amd64 /usr/bin/dumb-init
-
 ENV DIND_COMMIT 3b5fac462d21ca164b3778647420016315289034
 
-ENV GITLAB_RUNNER_VERSION=9.1.1
+ENV GITLAB_RUNNER_VERSION=11.7.0
+
+ENV DUMB_INIT_VERSION=1.2.2
 
 ENV DOCKER_ENGINE_VERSION=1.13.1-0~ubuntu-xenial
+
+# Download dumb-init
+ADD https://github.com/Yelp/dumb-init/releases/download/v${DUMB_INIT_VERSION}/dumb-init_${DUMB_INIT_VERSION}_amd64 /usr/bin/dumb-init
+
+# Download gitlab-runner
+ADD https://s3.amazonaws.com/gitlab-runner-downloads/v${GITLAB_RUNNER_VERSION}/binaries/gitlab-runner-linux-amd64 /usr/bin/gitlab-runner
+
+# Download dcos cli
+ADD https://downloads.dcos.io/binaries/cli/linux/x86-64/dcos-1.12/dcos /usr/bin/dcos
 
 # Install components and do the preparations
 # 1. Install needed packages
@@ -22,10 +30,8 @@ RUN apt-get update -y && \
     apt-get upgrade -y && \
     apt-get install -y ca-certificates apt-transport-https curl dnsutils bridge-utils lsb-release software-properties-common && \
     chmod +x /usr/bin/dumb-init && \
-    echo "deb https://packages.gitlab.com/runner/gitlab-ci-multi-runner/ubuntu/ `lsb_release -cs` main" > /etc/apt/sources.list.d/runner_gitlab-ci-multi-runner.list && \
-    curl -sSL https://packages.gitlab.com/gpg.key | apt-key add - && \
-    apt-get update -y && \
-    apt-get install -y gitlab-ci-multi-runner=${GITLAB_RUNNER_VERSION} && \
+    chmod +x /usr/bin/gitlab-runner && \
+    chmod +x /usr/bin/dcos && \
     mkdir -p /etc/gitlab-runner/certs && \
     chmod -R 700 /etc/gitlab-runner && \
     curl -sSL https://raw.githubusercontent.com/tobilg/mesosdns-resolver/master/mesosdns-resolver.sh -o /usr/local/bin/mesosdns-resolver && \

@@ -27,7 +27,7 @@ fi
 if [ -z ${RUNNER_CONCURRENT_BUILDS+x} ]; then
     echo "==> Concurrency is set to 1"
 else
-    sed -i -e "s|concurrent = 1|concurrent = ${RUNNER_CONCURRENT_BUILDS}|g" /etc/gitlab-runner/config.toml
+    export RUNNER_REQUEST_CONCURRENCY=${RUNNER_CONCURRENT_BUILDS}
     echo "==> Concurrency is set to ${RUNNER_CONCURRENT_BUILDS}"
 fi
 
@@ -35,9 +35,6 @@ fi
 
 # Set data directory
 DATA_DIR="/etc/gitlab-runner"
-
-# Set config file
-CONFIG_FILE=${CONFIG_FILE:-$DATA_DIR/config.toml}
 
 # Set custom certificate authority paths
 CA_CERTIFICATES_PATH=${CA_CERTIFICATES_PATH:-$DATA_DIR/certs/ca.crt}
@@ -94,6 +91,18 @@ export RUNNER_WORK_DIR=${MESOS_SANDBOX}/work
 
 # Create directories
 mkdir -p $RUNNER_BUILDS_DIR $RUNNER_CACHE_DIR $RUNNER_WORK_DIR
+
+# Try logging into dcos
+if [ -z ${RUNNER_SECRET+x} ]; then
+    echo "==> No runner secret found"
+else
+    echo "==> Found secret, attempting to authenticate..."
+    echo "${RUNNER_SECRET}" > /gitlab-runner-private.pem
+    chmod 400 /gitlab-runner-private.pem
+    dcos cluster setup https://leader.mesos --no-check --username gitlab-runner --private-key /gitlab-runner-private.pem
+    echo "==> DC/OS CLI is authenticated!"
+    unset RUNNER_SECRET
+fi
 
 # Print the environment for debugging purposes
 echo "==> Printing the environment"
