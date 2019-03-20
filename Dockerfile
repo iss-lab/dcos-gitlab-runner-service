@@ -48,6 +48,7 @@ RUN apt-get update -y && \
 
 # Add wrapper script
 ADD register_and_run.sh /
+ADD ensure_dcos_login.sh /
 
 # Expose volumes
 VOLUME ["/var/lib/docker", "/etc/gitlab-runner", "/home/gitlab-runner"]
