@@ -18,7 +18,7 @@ ADD https://github.com/Yelp/dumb-init/releases/download/v${DUMB_INIT_VERSION}/du
 ADD https://s3.amazonaws.com/gitlab-runner-downloads/v${GITLAB_RUNNER_VERSION}/binaries/gitlab-runner-linux-amd64 /usr/bin/gitlab-runner
 
 # Download dcos cli
-ADD https://downloads.dcos.io/binaries/cli/linux/x86-64/dcos-1.12/dcos /usr/bin/dcos
+ADD https://downloads.dcos.io/binaries/cli/linux/x86-64/dcos-1.13/dcos /usr/bin/dcos
 
 # Install components and do the preparations
 # 1. Install needed packages
