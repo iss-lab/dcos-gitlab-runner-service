@@ -46,6 +46,9 @@ RUN apt-get update -y && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Add kubectl as a container
+COPY --from=lachlanevenson/k8s-kubectl:v1.14.6 /usr/local/bin/kubectl /usr/local/bin/kubectl
+
 # Add wrapper script
 ADD register_and_run.sh /
 ADD ensure_dcos_login.sh /
