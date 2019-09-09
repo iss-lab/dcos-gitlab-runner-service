@@ -1,6 +1,6 @@
 FROM ubuntu:16.04
 
-MAINTAINER TobiLG <tobilg@gmail.com>
+LABEL TobiLG <tobilg@gmail.com> # the keyword MAINTAINER seems to be depricated
 
 ENV DIND_COMMIT 3b5fac462d21ca164b3778647420016315289034
 
