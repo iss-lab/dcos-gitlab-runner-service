@@ -99,7 +99,7 @@ else
     echo "==> Found secret, attempting to authenticate..."
     echo "${RUNNER_SECRET}" > /gitlab-runner-private.pem
     chmod 400 /gitlab-runner-private.pem
-    dcos cluster setup https://leader.mesos --no-check --username $SERVICE_PRINCIPAL --private-key /gitlab-runner-private.pem
+    dcos cluster setup https://leader.mesos --no-check --username ${SERVICE_PRINCIPAL} --private-key /gitlab-runner-private.pem
     echo "==> DC/OS CLI is authenticated!"
     unset RUNNER_SECRET
 fi
