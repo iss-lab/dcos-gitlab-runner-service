@@ -101,6 +101,17 @@ else
     chmod 400 /gitlab-runner-private.pem
     dcos cluster setup https://leader.mesos --no-check --username ${SERVICE_PRINCIPAL} --private-key /gitlab-runner-private.pem
     echo "==> DC/OS CLI is authenticated!"
+    dcos package install kubernetes --cli --yes
+    if [ -z ${K8S_API_SERVER} ]; then
+        echo "==> No Kubernetes API Server defined."
+    else
+        echo "==> Adding configs specific to ${K8S_CLUSTER_NAME}..."
+        if [ -z ${K8S_SKIP_TLS_VERIFY} ]; then 
+            dcos kubernetes cluster kubeconfig --context-name=${K8S_SA_NAME} --cluster-name=${K8S_CLUSTER_NAME} --apiserver-url=${K8S_API_SERVER}
+        else    
+            dcos kubernetes cluster kubeconfig --insecure-skip-tls-verify --context-name=${K8S_SA_NAME} --cluster-name=${K8S_CLUSTER_NAME} --apiserver-url=${K8S_API_SERVER} 
+        fi
+    fi 
     unset RUNNER_SECRET
 fi
 
@@ -151,3 +162,4 @@ gitlab-runner register
 
 # Start the runner
 gitlab-runner run --working-directory=${RUNNER_WORK_DIR} --listen-address $HOST:$PORT0
+
