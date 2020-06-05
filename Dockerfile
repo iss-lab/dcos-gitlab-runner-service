@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 
 LABEL TobiLG <tobilg@gmail.com> # the keyword MAINTAINER seems to be depricated
 
@@ -8,9 +8,6 @@ ENV GITLAB_RUNNER_VERSION=12.2.0
 
 ENV DUMB_INIT_VERSION=1.2.2
 
-# ENV DOCKER_ENGINE_VERSION=1.13.1-0~ubuntu-xenial
-ENV DOCKER_CE_VERSION=5:18.09.1~3-0~ubuntu-xenial
-
 # Download dumb-init
 ADD https://github.com/Yelp/dumb-init/releases/download/v${DUMB_INIT_VERSION}/dumb-init_${DUMB_INIT_VERSION}_amd64 /usr/bin/dumb-init
 
@@ -19,6 +16,9 @@ ADD https://s3.amazonaws.com/gitlab-runner-downloads/v${GITLAB_RUNNER_VERSION}/b
 
 # Download dcos cli
 ADD https://downloads.dcos.io/binaries/cli/linux/x86-64/dcos-1.13/dcos /usr/bin/dcos
+
+# Add AWX config script
+ADD configure_awx.sh /
 
 # Install components and do the preparations
 # 1. Install needed packages
@@ -42,9 +42,11 @@ RUN apt-get update -y && \
     apt-key fingerprint 0EBFCD88 && \
     add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" && \
     apt-get update && \
-    apt-get install -y docker-ce=${DOCKER_CE_VERSION} docker-ce-cli=${DOCKER_CE_VERSION} containerd.io && \
+    apt-get install -y docker-ce docker-ce-cli containerd.io && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+RUN /bin/bash /configure_awx.sh
 
 # Add kubectl as a container
 COPY --from=lachlanevenson/k8s-kubectl:v1.14.6 /usr/local/bin/kubectl /usr/local/bin/kubectl
