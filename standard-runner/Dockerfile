@@ -1,13 +1,13 @@
 FROM gitlab/gitlab-runner:ubuntu
 
-RUN mkdir -p /mnt/mesos/sandbox
-
 # Download dcos cli
 ADD https://downloads.dcos.io/cli/releases/binaries/dcos/linux/x86-64/latest/dcos /usr/bin/dcos
 RUN chmod +x /usr/bin/dcos
 
+# Add bootstrap binary
+RUN apt-get update -y && apt-get upgrade -y && apt-get install -y unzip
 ADD https://downloads.mesosphere.com/dcos-commons/artifacts/0.42.1/bootstrap.zip /bootstrap.zip
-RUN /usr/bin/gunzip /bootstrap.zip
+RUN /usr/bin/unzip /bootstrap.zip
 RUN chmod +x /bootstrap
 
 # Add kubectl as a container

@@ -3,7 +3,7 @@
 set -eu
 
 ensure_dcos_login() {
-  dcos node &> /dev/null || ${DCOS} auth login --username ${SERVICE_PRINCIPAL} --private-key /gitlab-runner-private.pem
+  dcos node &> /dev/null || dcos auth login --username ${SERVICE_PRINCIPAL} --private-key /gitlab-runner-private.pem
 }
 
 handle_exit() {

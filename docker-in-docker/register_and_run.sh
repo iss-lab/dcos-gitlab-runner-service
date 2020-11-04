@@ -2,14 +2,49 @@
 
 set -eu
 
-# Ensure that either GITLAB_SERVICE_NAME or GITLAB_INSTANCE_URL is set. Otherwise we can't register!
-if [ -z ${GITLAB_SERVICE_NAME+x} ]; then
-    # Check that
-    if [ -z ${GITLAB_INSTANCE_URL+x} ]; then
-        echo "==> Need to either set GITLAB_SERVICE_NAME to the service name of GitLab (e.g. gitlab.marathon.mesos), or GITLAB_INSTANCE_URL to the URL of the GitLab instance! Exiting..."
-        exit 1
-    fi
+# Include the original entrypoint contents
+
+# Set data directory
+DATA_DIR="/etc/gitlab-runner"
+CONFIG_FILE=${CONFIG_FILE:-$DATA_DIR/config.toml}
+
+# Set custom certificate authority paths
+CA_CERTIFICATES_PATH=${CA_CERTIFICATES_PATH:-$DATA_DIR/certs/ca.crt}
+LOCAL_CA_PATH="/usr/local/share/ca-certificates/ca.crt"
+
+# Create update_ca function
+update_ca() {
+  echo "==> Updating CA certificates..."
+  cp "${CA_CERTIFICATES_PATH}" "${LOCAL_CA_PATH}"
+  update-ca-certificates --fresh > /dev/null
+}
+
+# Compare the custom CA path to the current CA path
+if [ -f "${CA_CERTIFICATES_PATH}" ]; then
+  # Update the CA if the custom CA is different than the current
+  cmp --silent "${CA_CERTIFICATES_PATH}" "${LOCAL_CA_PATH}" || update_ca
 fi
+
+# /Include the original entrypoint contents
+
+if [ ! -z ${RUNNER_MUSTACHE_BASE64+x} ]; then
+  rm -f ${MESOS_SANDBOX}/config.toml
+  echo "${RUNNER_MUSTACHE_BASE64}" | base64 -d > ${MESOS_SANDBOX}/config.toml
+  export CONFIG_TEMPLATE_GITLAB="config.toml,/etc/gitlab-runner/config.toml"
+  CURRENT_DIR=$(pwd)
+  cd ${MESOS_SANDBOX}
+  /bootstrap -install-certs=false -print-env=false -resolve=false -resolve-hosts='' -self-resolve=false -template=true > /dev/null 2>&1
+  cd ${CURRENT_DIR}
+fi
+
+# Ensure that GITLAB_INSTANCE_URL is set. Otherwise we can't register!
+if [ -z ${GITLAB_INSTANCE_URL+x} ]; then
+  echo "==> Need to either set GITLAB_INSTANCE_URL to the URL of the GitLab instance! Exiting..."
+  exit 1
+fi
+
+# Set CI_SERVER_URL to the GITLAB_INSTANCE_URL
+export CI_SERVER_URL=${GITLAB_INSTANCE_URL}
 
 # Ensure REGISTRATION_TOKEN
 if [ -z ${REGISTRATION_TOKEN+x} ]; then
@@ -31,51 +66,18 @@ else
     echo "==> Concurrency is set to ${RUNNER_CONCURRENT_BUILDS}"
 fi
 
-# Include the original entrypoint contents
-
-# Set data directory
-DATA_DIR="/etc/gitlab-runner"
-
-# Set custom certificate authority paths
-CA_CERTIFICATES_PATH=${CA_CERTIFICATES_PATH:-$DATA_DIR/certs/ca.crt}
-LOCAL_CA_PATH="/usr/local/share/ca-certificates/ca.crt"
-
-# Create update_ca function
-update_ca() {
-  echo "==> Updating CA certificates..."
-  cp "${CA_CERTIFICATES_PATH}" "${LOCAL_CA_PATH}"
-  update-ca-certificates --fresh > /dev/null
-}
-
-# Compare the custom CA path to the current CA path
-if [ -f "${CA_CERTIFICATES_PATH}" ]; then
-  # Update the CA if the custom CA is different than the current
-  cmp --silent "${CA_CERTIFICATES_PATH}" "${LOCAL_CA_PATH}" || update_ca
+# Derive the RUNNER_NAME from the MESOS_TASK_ID unless given
+if [ -z ${RUNNER_NAME+x} ]; then
+    RUNNER_NAME=${MESOS_TASK_ID}
 fi
 
-# /Include the original entrypoint contents
+export RUNNER_NAME
 
-# Check whether GITLAB_INSTANCE_URL is non-empty. If so, use the GITLAB_INSTANCE_URL directly, if not, use
-if [ -z ${GITLAB_INSTANCE_URL+x} ]; then
-    # Display the GitLab instance URL discovery method
-    echo "==> Using Mesos DNS to discover the GitLab instance URL"
-
-    # Derive the Mesos DNS server ip address by getting the first nameserver entry from /etc/resolv.conf which is a workaround
-    export MESOS_DNS_SERVER=$(cat /etc/resolv.conf | grep nameserver | awk -F" " '{print $2}' | head -n 1)
-
-    # Set the CI_SERVER_URL by resolving the Mesos DNS service name endpoint.
-    # Environment variable GITLAB_SERVICE_NAME must be defined in the Marathon app.json
-    export CI_SERVER_URL=http://$(mesosdns-resolver --serviceName $GITLAB_SERVICE_NAME --server $MESOS_DNS_SERVER --portIndex 0)
-else
-    # Display the GitLab instance URL discovery method
-    echo "==> Using the GITLAB_INSTANCE_URL environment variable to set the GitLab instance URL"
-
-    # Set CI_SERVER_URL to the GITLAB_INSTANCE_URL
-    export CI_SERVER_URL=${GITLAB_INSTANCE_URL}
+# Ensure SERVICE_PRINCIPAL
+if [ -z ${SERVICE_PRINCIPAL+x} ]; then
+    echo "==> Need to set SERVICE_PRINCIPAL. Exiting..."
+    exit 1
 fi
-
-# Derive the RUNNER_NAME from the MESOS_TASK_ID
-export RUNNER_NAME=${MESOS_TASK_ID}
 
 # Enable non-interactive registration the the main GitLab instance
 export REGISTER_NON_INTERACTIVE=true
@@ -99,7 +101,7 @@ else
     echo "==> Found secret, attempting to authenticate..."
     echo "${RUNNER_SECRET}" > /gitlab-runner-private.pem
     chmod 400 /gitlab-runner-private.pem
-    dcos cluster setup https://leader.mesos --no-check --username ${SERVICE_PRINCIPAL} --private-key /gitlab-runner-private.pem
+    dcos cluster setup https://leader.mesos --insecure --no-check --username ${SERVICE_PRINCIPAL} --private-key /gitlab-runner-private.pem
     echo "==> DC/OS CLI is authenticated!"
     dcos package install kubernetes --cli --yes
     if [ -z ${K8S_API_SERVER} ]; then

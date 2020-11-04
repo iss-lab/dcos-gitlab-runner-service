@@ -1,11 +1,24 @@
 # dcos-gitlab-runner-service
 
-[![Build Status](https://jenkins.mesosphere.com/service/jenkins/buildStatus/icon?job=GitLab/dcos-gitlab-runner-service-publish-docker_release)](https://jenkins.mesosphere.com/service/jenkins/job/GitLab/job/dcos-gitlab-runner-service-publish-docker_release/)
-[![Docker Stars](https://img.shields.io/docker/stars/mesosphere/dcos-gitlab-runner-service.svg)](https://hub.docker.com/r/mesosphere/dcos-gitlab-runner-service/)
-[![Docker Pulls](https://img.shields.io/docker/pulls/mesosphere/dcos-gitlab-runner-service.svg)](https://hub.docker.com/r/mesosphere/dcos-gitlab-runner-service/)
-[![](https://images.microbadger.com/badges/image/mesosphere/dcos-gitlab-runner-service.svg)](http://microbadger.com/images/mesosphere/dcos-gitlab-runner-service "Get your own image badge on microbadger.com")
-
 A customized Docker image for running scalable GitLab CI runners on DC/OS via Marathon.
+
+## ISS Updates
+
+Build the docker in docker image:
+
+```
+cd docker-in-docker
+docker build -t isslab/dcos-gitlab-runner-service:dind-20201104-2.1 .
+docker push isslab/dcos-gitlab-runner-service:dind-20201104-2.1
+```
+
+Build the standard, newer ubuntu docker image:
+
+```
+cd standard-runner
+docker build -t isslab/dcos-gitlab-runner-service:standard-20201104-2.1 .
+docker push isslab/dcos-gitlab-runner-service:standard-20201104-2.1
+```
 
 ## Configuration
 
